@@ -108,6 +108,13 @@ namespace XL4Net.Shared.Transport
         public int PayloadSize { get; set; }
 
         /// <summary>
+        /// Tipo do packet (Handshake, Ping, Data, etc).
+        /// Usado para identificar o propósito do packet sem precisar desserializar o Payload.
+        /// </summary>
+        /// <seealso cref="PacketType"/>
+        public byte Type { get; set; }
+
+        /// <summary>
         /// Reseta o pacote para estado padrão.
         /// Chamado automaticamente quando o pacote é retornado ao pool.
         /// </summary>
@@ -121,6 +128,7 @@ namespace XL4Net.Shared.Transport
             Ack = 0;
             AckBits = 0;
             Channel = ChannelType.Unreliable;
+            Type = 0;
             // NÃO reseta Payload (buffer é gerenciado pelo BufferPool)
             PayloadSize = 0;
         }
@@ -246,5 +254,129 @@ namespace XL4Net.Shared.Transport
             return ((s1 > s2) && (s1 - s2 <= 32768)) ||
                    ((s1 < s2) && (s2 - s1 > 32768));
         }
+
+        #region Serialização
+
+        /// <summary>
+        /// Serializa o packet para bytes (formato wire protocol).
+        /// Formato: [Type:1][Sequence:2][Ack:2][AckBits:4][Channel:1][PayloadSize:4][Payload:N]
+        /// Total header: 14 bytes + payload
+        /// </summary>
+        /// <returns>Array de bytes representando o packet</returns>
+        /// <remarks>
+        /// Este formato é usado para transmissão pela rede (TCP/UDP).
+        /// É diferente de MessagePack (usado para serializar mensagens dentro do Payload).
+        /// 
+        /// Estrutura do packet serializado:
+        /// - Type (1 byte): Tipo do packet (0-255)
+        /// - Sequence (2 bytes): Número sequencial
+        /// - Ack (2 bytes): Último packet recebido
+        /// - AckBits (4 bytes): Bitfield de confirmações
+        /// - Channel (1 byte): Canal de transmissão
+        /// - PayloadSize (4 bytes): Tamanho do payload
+        /// - Payload (N bytes): Dados (pode ser vazio)
+        /// </remarks>
+        public byte[] Serialize()
+        {
+            // Calcula tamanho total
+            int headerSize = 14; // Type(1) + Seq(2) + Ack(2) + AckBits(4) + Channel(1) + Size(4)
+            int totalSize = headerSize + PayloadSize;
+
+            var buffer = new byte[totalSize];
+            int offset = 0;
+
+            // 1. Type (1 byte)
+            buffer[offset++] = Type;
+
+            // 2. Sequence (2 bytes)
+            System.Buffer.BlockCopy(System.BitConverter.GetBytes(Sequence), 0, buffer, offset, 2);
+            offset += 2;
+
+            // 3. Ack (2 bytes)
+            System.Buffer.BlockCopy(System.BitConverter.GetBytes(Ack), 0, buffer, offset, 2);
+            offset += 2;
+
+            // 4. AckBits (4 bytes)
+            System.Buffer.BlockCopy(System.BitConverter.GetBytes(AckBits), 0, buffer, offset, 4);
+            offset += 4;
+
+            // 5. Channel (1 byte)
+            buffer[offset++] = (byte)Channel;
+
+            // 6. PayloadSize (4 bytes)
+            System.Buffer.BlockCopy(System.BitConverter.GetBytes(PayloadSize), 0, buffer, offset, 4);
+            offset += 4;
+
+            // 7. Payload (N bytes)
+            if (PayloadSize > 0 && Payload != null)
+            {
+                System.Buffer.BlockCopy(Payload, 0, buffer, offset, PayloadSize);
+            }
+
+            return buffer;
+        }
+
+        /// <summary>
+        /// Deserializa bytes para este packet.
+        /// Reconstrói o packet a partir do formato wire protocol.
+        /// </summary>
+        /// <param name="buffer">Bytes recebidos da rede</param>
+        /// <exception cref="System.ArgumentException">Se buffer for inválido</exception>
+        /// <remarks>
+        /// IMPORTANTE: Este método NÃO aloca novo array para Payload se o Payload atual
+        /// já for grande o suficiente (reutiliza buffer existente do pool).
+        /// </remarks>
+        public void Deserialize(byte[] buffer)
+        {
+            if (buffer == null || buffer.Length < 14)
+                throw new System.ArgumentException("Buffer too small for packet header");
+
+            int offset = 0;
+
+            // 1. Type (1 byte)
+            Type = buffer[offset++];
+
+            // 2. Sequence (2 bytes)
+            Sequence = System.BitConverter.ToUInt16(buffer, offset);
+            offset += 2;
+
+            // 3. Ack (2 bytes)
+            Ack = System.BitConverter.ToUInt16(buffer, offset);
+            offset += 2;
+
+            // 4. AckBits (4 bytes)
+            AckBits = System.BitConverter.ToUInt32(buffer, offset);
+            offset += 4;
+
+            // 5. Channel (1 byte)
+            Channel = (ChannelType)buffer[offset++];
+
+            // 6. PayloadSize (4 bytes)
+            PayloadSize = System.BitConverter.ToInt32(buffer, offset);
+            offset += 4;
+
+            // Valida tamanho
+            if (PayloadSize < 0 || offset + PayloadSize > buffer.Length)
+                throw new System.ArgumentException("Invalid payload size in packet");
+
+            // 7. Payload (N bytes)
+            if (PayloadSize > 0)
+            {
+                // Reutiliza buffer existente se possível (evita alocação)
+                if (Payload == null || Payload.Length < PayloadSize)
+                {
+                    Payload = new byte[PayloadSize];
+                }
+
+                System.Buffer.BlockCopy(buffer, offset, Payload, 0, PayloadSize);
+            }
+            else
+            {
+                // Payload vazio, mas mantém buffer alocado (pode ser reutilizado depois)
+                PayloadSize = 0;
+            }
+        }
+
+        #endregion
     }
 }

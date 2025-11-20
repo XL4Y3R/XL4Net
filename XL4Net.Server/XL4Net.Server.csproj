@@ -25,7 +25,6 @@
     <Folder Include="Events\" />
     <Folder Include="Pooling\" />
     <Folder Include="States\" />
-    <Folder Include="Transport\" />
     <Folder Include="Reconciliation\" />
     <Folder Include="Simulation\" />
   </ItemGroup>

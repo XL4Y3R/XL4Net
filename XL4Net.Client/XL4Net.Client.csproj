@@ -17,7 +17,6 @@
     <Folder Include="Core\" />
     <Folder Include="Interpolation\" />
     <Folder Include="Events\" />
-    <Folder Include="Transport\" />
     <Folder Include="Reconciliation\" />
     <Folder Include="Prediction\" />
   </ItemGroup>
