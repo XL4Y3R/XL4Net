@@ -1,5 +1,6 @@
 ﻿// XL4Net.Shared/Transport/Packet.cs
 
+using MessagePack;
 using XL4Net.Shared.Pooling;
 using XL4Net.Shared.Protocol.Enums;
 
@@ -32,6 +33,7 @@ namespace XL4Net.Shared.Transport
     /// } // Auto-return ao pool
     /// </code>
     /// </remarks>
+    [MessagePackObject]
     public class Packet : IPoolable
     {
         /// <summary>
@@ -45,6 +47,7 @@ namespace XL4Net.Shared.Transport
         /// Pacote #65535 → Sequence = 65535
         /// Pacote #65536 → Sequence = 0 (wrap around)
         /// </example>
+        [Key(0)]
         public ushort Sequence { get; set; }
 
         /// <summary>
@@ -56,6 +59,7 @@ namespace XL4Net.Shared.Transport
         /// - Próximo pacote do servidor terá Ack = 5
         /// - Cliente sabe: "Servidor recebeu meu #5!"
         /// </example>
+        [Key(1)]
         public ushort Ack { get; set; }
 
         /// <summary>
@@ -76,6 +80,7 @@ namespace XL4Net.Shared.Transport
         /// 
         /// O sender pode detectar que #96 foi perdido e reenviar.
         /// </remarks>
+        [Key(2)]
         public uint AckBits { get; set; }
 
         /// <summary>
@@ -83,6 +88,7 @@ namespace XL4Net.Shared.Transport
         /// Define comportamento de confiabilidade e ordenação.
         /// </summary>
         /// <seealso cref="ChannelType"/>
+        [Key(3)]
         public ChannelType Channel { get; set; }
 
         /// <summary>
@@ -93,6 +99,7 @@ namespace XL4Net.Shared.Transport
         /// IMPORTANTE: Este array será POOLADO separadamente pelo BufferPool.
         /// Não aloque manualmente com 'new byte[]', use BufferPool.Rent().
         /// </remarks>
+        [Key(4)]
         public byte[]? Payload { get; set; }
 
         /// <summary>
@@ -105,6 +112,7 @@ namespace XL4Net.Shared.Transport
         /// 
         /// Ao enviar, use: payload.AsSpan(0, PayloadSize)
         /// </example>
+        [Key(5)]
         public int PayloadSize { get; set; }
 
         /// <summary>
@@ -112,7 +120,12 @@ namespace XL4Net.Shared.Transport
         /// Usado para identificar o propósito do packet sem precisar desserializar o Payload.
         /// </summary>
         /// <seealso cref="PacketType"/>
+        [Key(6)]
         public byte Type { get; set; }
+
+
+        public Packet() { }
+
 
         /// <summary>
         /// Reseta o pacote para estado padrão.
@@ -128,9 +141,8 @@ namespace XL4Net.Shared.Transport
             Ack = 0;
             AckBits = 0;
             Channel = ChannelType.Unreliable;
-            Type = 0;
-            // NÃO reseta Payload (buffer é gerenciado pelo BufferPool)
-            PayloadSize = 0;
+            Type = 0;            
+            PayloadSize = 0;// NÃO reseta Payload (buffer é gerenciado pelo BufferPool)
         }
 
         /// <summary>

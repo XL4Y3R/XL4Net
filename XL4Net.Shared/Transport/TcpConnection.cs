@@ -47,12 +47,12 @@ namespace XL4Net.Shared.Transport
         /// <summary>
         /// Disparado quando recebe dados completos (um packet).
         /// </summary>
-        public event Action<byte[]> OnDataReceived;
+        public event Action<byte[]>? OnDataReceived;
 
         /// <summary>
         /// Disparado quando a conexão é fechada.
         /// </summary>
-        public event Action<int> OnDisconnected;
+        public event Action<int>? OnDisconnected;
 
         #endregion
 

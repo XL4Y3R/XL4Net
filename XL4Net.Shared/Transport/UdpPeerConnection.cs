@@ -56,7 +56,7 @@ namespace XL4Net.Shared.Transport
         /// <summary>
         /// Disparado quando a conexão é encerrada.
         /// </summary>
-        public event Action<int> OnDisconnected;
+        public event Action<int>? OnDisconnected;
 
         #endregion
 
