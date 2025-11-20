@@ -93,7 +93,7 @@ namespace XL4Net.Shared.Transport
         /// IMPORTANTE: Este array será POOLADO separadamente pelo BufferPool.
         /// Não aloque manualmente com 'new byte[]', use BufferPool.Rent().
         /// </remarks>
-        public byte[] Payload { get; set; }
+        public byte[]? Payload { get; set; }
 
         /// <summary>
         /// Tamanho real dos dados úteis no Payload.
