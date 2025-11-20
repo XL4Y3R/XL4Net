@@ -321,6 +321,29 @@ namespace XL4Net.Server.Transport
         }
 
         /// <summary>
+        /// Alias para SendToClientAsync (compatibilidade com AuthServer).
+        /// </summary>
+        public async Task<bool> SendToAsync(int clientId, Packet packet)
+        {
+            return await SendToClientAsync(clientId, packet);
+        }
+
+        /// <summary>
+        /// Retorna o endereço IP de um cliente específico.
+        /// </summary>
+        /// <param name="clientId">ID do cliente</param>
+        /// <returns>IP address como string (ex: "192.168.1.100") ou null se cliente não encontrado</returns>
+        public string? GetClientIP(int clientId)
+        {
+            if (_clients.TryGetValue(clientId, out var client))
+            {
+                // NetPeer não possui EndPoint, mas possui propriedade Address herdada de IPEndPoint
+                return client.Peer.Address?.ToString(); // return client.Peer.EndPoint?.Address?.ToString();
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Processa mensagens enfileiradas.
         /// DEVE ser chamado no game loop (main thread).
         /// </summary>

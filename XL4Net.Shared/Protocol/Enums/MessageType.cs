@@ -12,9 +12,12 @@
         Disconnect = 3,
 
         // Autenticação (100-199)
-        LoginRequest = 100,
-        LoginResponse = 101,
-        TokenValidation = 102,
+        RegisterRequest = 100,
+        RegisterResponse = 101,
+        LoginRequest = 102,
+        LoginResponse = 103,
+        TokenValidationRequest = 104,
+        TokenValidationResponse = 105,
 
         // Gameplay (200-299)
         PlayerMove = 200,

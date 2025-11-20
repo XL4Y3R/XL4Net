@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16
+    container_name: xl4net-db
+    environment:
+      # Nome do database que será criado
+      POSTGRES_DB: xl4net
+      # Usuário admin do PostgreSQL
+      POSTGRES_USER: xl4admin
+      # Senha (em produção, usar secret!)
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-xl4netdev123}
+    ports:
+      # Porta exposta: host:container
+      - "5433:5432"
+    volumes:
+      # Volume persistente (dados não somem ao parar container)
+      - postgres_data:/var/lib/postgresql/data
+      # Scripts SQL rodados na inicialização
+      - ./sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      # Verifica se PostgreSQL está pronto
+      test: ["CMD-SHELL", "pg_isready -U xl4admin -d xl4net"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - xl4net-network
+
+  # Opcional: Adminer (UI web para PostgreSQL)
+  adminer:
+    image: adminer:latest
+    container_name: xl4net-adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - xl4net-network
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+
+  # AuthServer (será criado depois)
+  # authserver:
+  #   build:
+  #     context: .
+  #     dockerfile: src/XL4Net.AuthServer/Dockerfile
+  #   container_name: xl4net-auth
+  #   environment:
+  #     - DATABASE_URL=Host=postgres;Port=5432;Database=xl4net;Username=xl4admin;Password=${DB_PASSWORD:-xl4netdev123}
+  #     - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+  #   ports:
+  #     - "2106:2106"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - xl4net-network
+  #   restart: unless-stopped
+
+# Volumes (dados persistentes)
+volumes:
+  postgres_data:
+    driver: local
+
+# Network (containers se comunicam)
+networks:
+  xl4net-network:
+    driver: bridge
