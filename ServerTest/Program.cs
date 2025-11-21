@@ -84,9 +84,9 @@ namespace ServerTest
 
         // === CALLBACKS ===
 
-        static void OnClientConnected(int clientId)
+        static void OnClientConnected(int clientId, string ipAddress)
         {
-            Console.WriteLine($"[CONNECT] Client {clientId} connected!");
+            Console.WriteLine($"[CONNECT] Client {clientId} connected! (IP: {ipAddress})");
 
             // Envia mensagem de boas-vindas
             var packet = PacketPool.Rent();

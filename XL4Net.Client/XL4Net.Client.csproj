@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+	<OutputType>Library</OutputType>
     <TargetFramework>netstandard2.1</TargetFramework>
 	<LangVersion>10.0</LangVersion>
     <Nullable>enable</Nullable>
@@ -19,8 +20,6 @@
     <Folder Include="Core\" />
     <Folder Include="Interpolation\" />
     <Folder Include="Events\" />
-    <Folder Include="Reconciliation\" />
-    <Folder Include="Prediction\" />
   </ItemGroup>
 
 </Project>

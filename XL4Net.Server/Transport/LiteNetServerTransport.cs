@@ -59,6 +59,7 @@ namespace XL4Net.Server.Transport
             public int ClientId;
             public Packet Packet;
             public MessageType Type;
+            public string IpAddress;
         }
 
         private enum MessageType
@@ -94,9 +95,9 @@ namespace XL4Net.Server.Transport
 
         /// <summary>
         /// Disparado quando um cliente conecta.
-        /// Parâmetro: clientId
+        /// Parâmetros: clientId, ipAddress
         /// </summary>
-        public event Action<int> OnClientConnected;
+        public event Action<int, string> OnClientConnected;
 
         /// <summary>
         /// Disparado quando um cliente desconecta.
@@ -266,6 +267,27 @@ namespace XL4Net.Server.Transport
             }
         }
 
+        /// <summary>
+        /// Envia packet para cliente com delivery method específico.
+        /// </summary>
+        public void SendTo(int clientId, Packet packet, DeliveryMethod delivery)
+        {
+            if (!_clients.TryGetValue(clientId, out var client))
+            {
+                return;
+            }
+
+            try
+            {
+                byte[] data = packet.Serialize();
+                client.Peer.Send(data, delivery);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending to client {clientId}: {ex.Message}");
+            }
+        }
+
 
         /// <summary>
         /// Envia um packet para todos os clientes conectados.
@@ -299,12 +321,19 @@ namespace XL4Net.Server.Transport
         /// <summary>
         /// Desconecta um cliente específico.
         /// </summary>
+        /// <param name="clientId">ID do cliente</param>
+        /// <param name="reason">Motivo da desconexão</param>
         public void DisconnectClient(int clientId, string reason = "Disconnected by server")
         {
             if (_clients.TryGetValue(clientId, out var client))
             {
                 Console.WriteLine($"Disconnecting client {clientId}: {reason}");
-                client.Peer.Disconnect();
+
+                // NetDataWriter para enviar motivo
+                var writer = new NetDataWriter();
+                writer.Put(reason);
+
+                client.Peer.Disconnect(writer);
             }
         }
 
@@ -360,7 +389,7 @@ namespace XL4Net.Server.Transport
                 switch (message.Type)
                 {
                     case MessageType.ClientConnected:
-                        OnClientConnected?.Invoke(message.ClientId);
+                        OnClientConnected?.Invoke(message.ClientId, message.IpAddress);
                         break;
 
                     case MessageType.ClientDisconnected:
@@ -437,6 +466,9 @@ namespace XL4Net.Server.Transport
                 // Gera ID único para o cliente
                 int clientId = Interlocked.Increment(ref _nextClientId);
 
+                // Pega IP do cliente
+                string ipAddress = peer.Address?.ToString() ?? "unknown";
+
                 // Registra cliente
                 var client = new ClientConnection
                 {
@@ -447,16 +479,17 @@ namespace XL4Net.Server.Transport
 
                 _clients.TryAdd(clientId, client);
 
-                // Usa Tag do peer para guardar o clientId (facilita lookup depois)
+                // Usa Tag do peer para guardar o clientId
                 peer.Tag = clientId;
 
-                Console.WriteLine($"Client {clientId} connected (total: {_clients.Count})");
+                Console.WriteLine($"Client {clientId} connected from {ipAddress} (total: {_clients.Count})");
 
-                // Enfileira evento
+                // Enfileira evento COM IP
                 _incomingMessages.Enqueue(new IncomingMessage
                 {
                     Type = MessageType.ClientConnected,
-                    ClientId = clientId
+                    ClientId = clientId,
+                    IpAddress = ipAddress
                 });
             }
             catch (Exception ex)

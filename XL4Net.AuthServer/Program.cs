@@ -293,9 +293,9 @@ namespace XL4Net.AuthServer
         /// <summary>
         /// Handler: Cliente conectou.
         /// </summary>
-        private static void OnClientConnected(int clientId)
+        private static void OnClientConnected(int clientId, string ipAddress)
         {
-            Log.Information("[CONNECT] Client {ClientId} connected", clientId);
+            Log.Information("[CONNECT] Client {ClientId} connected from {IpAddress}", clientId, ipAddress);
         }
 
         /// <summary>
